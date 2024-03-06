@@ -299,6 +299,23 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   Column(
                     children: [
+                      SizedBox(
+                        width: 300,
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 300,
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Fullname',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       const Padding(
                         padding: EdgeInsets.all(8.0),
                         child: Text(
@@ -311,8 +328,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       Signature(
                         controller: _controller,
-                        width: 150,
-                        height: 100,
+                        width: 200,
+                        height: 150,
                         backgroundColor:
                             const Color.fromARGB(255, 148, 221, 219),
                       ),
