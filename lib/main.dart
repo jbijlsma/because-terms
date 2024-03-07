@@ -16,21 +16,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Because - terms of engagement',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromRGBO(91, 198, 194, 1)),
         useMaterial3: true,
@@ -69,11 +54,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Future<void> saveFile(document, String name) async {
-    final bytes = await document.save();
-    FileSaver.instance
-        .saveFile(name: 'waiver', bytes: bytes, mimeType: MimeType.pdf);
-  }
+  bool? _isAgreeChecked = false;
 
   final ScreenshotController _screenshotController = ScreenshotController();
 
@@ -259,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         TextSpan(
                           text:
-                              ' activities, you agree to the collection, use, and sharing of your personal data for activities-related communication and organization. This includes your contact information and any health details necessary for your participation. You can withdraw consent by emailing [contact email].  We\'ll retain your data as required for activities administration. We may also use photos and videos taken during the activities for promotional and marketing purposes; let us know if you prefer not to be included.',
+                              ' activities, you agree to the collection, use, and sharing of your personal data for activities-related communication and organization. This includes your contact information and any health details necessary for your participation. You can withdraw consent by emailing cathiecocqueel@because-sport.com. We\'ll retain your data as required for activities administration. We may also use photos and videos taken during the activities for promotional and marketing purposes; let us know if you prefer not to be included.',
                         ),
                       ],
                     ),
@@ -289,9 +270,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             }
                             return const Color.fromRGBO(91, 198, 194, 1);
                           }),
-                          value: true,
+                          value: _isAgreeChecked,
                           onChanged: (bool? value) {
-                            setState(() {});
+                            setState(() {
+                              _isAgreeChecked = value;
+                            });
                           },
                         ),
                       ),
