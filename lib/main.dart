@@ -1,9 +1,17 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 import 'package:file_saver/file_saver.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'package:screenshot/screenshot.dart';
 
-void main() {
+void main() async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MyApp());
 }
 
@@ -104,6 +112,45 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 22),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 300,
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          var acs = ActionCodeSettings(
+                              // URL you want to redirect back to. The domain (www.example.com) for this
+                              // URL must be whitelisted in the Firebase Console.
+                              url: 'http://localhost:58128',
+                              // This must be true
+                              handleCodeInApp: true);
+
+                          // var user =
+                          //     await FirebaseAuth.instance.signInAnonymously();
+                          // print(user);
+
+                          var emailAuth = 'info.dotnetworks@gmail.com';
+                          FirebaseAuth.instance
+                              .sendSignInLinkToEmail(
+                                  email: emailAuth, actionCodeSettings: acs)
+                              .catchError((onError) => print(
+                                  'Error sending email verification $onError'))
+                              .then((value) => print(
+                                  'Successfully sent email verification'));
+                        },
+                        child: const Text('Verify'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   RichText(
@@ -282,14 +329,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   Column(
                     children: [
-                      SizedBox(
-                        width: 300,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                          ),
-                        ),
-                      ),
                       SizedBox(
                         width: 300,
                         child: TextFormField(

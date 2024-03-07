@@ -37,6 +37,8 @@ dependencies:
   signature: ^5.4.1
   file_saver: ^0.2.11
   screenshot: ^2.1.0
+  firebase_auth: 4.10.1
+  firebase_core: 2.17.0
 
 dev_dependencies:
   flutter_test:
