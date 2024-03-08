@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'dart:html';
 
 import 'package:file_saver/file_saver.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -63,10 +64,14 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool? _isAgreeChecked = false;
+  String? _error;
+
+  // When a verification email was sent, this keeps track of the email address
+  String? _email;
 
   final ScreenshotController _screenshotController = ScreenshotController();
 
-  final SignatureController _controller = SignatureController(
+  final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 5,
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
@@ -74,8 +79,159 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _signatureController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _trySignInWithEmailLink() async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      return FirebaseAuth.instance.currentUser?.email;
+    }
+
+    final emailLink = window.location.href;
+
+    if (FirebaseAuth.instance.isSignInWithEmailLink(emailLink)) {
+      try {
+        final uri = Uri.parse(emailLink);
+        final email = uri.queryParameters['email']!;
+
+        final userCredential = await FirebaseAuth.instance
+            .signInWithEmailLink(email: email, emailLink: emailLink);
+
+        final userEmail = userCredential.user?.email;
+        return userEmail;
+      } catch (error) {
+        setState(() {
+          _error = error.toString();
+        });
+        return "";
+      }
+    }
+
+    return "";
+  }
+
+  Widget _buildVerifyEmailRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Email',
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            const email = 'info.dotnetworks@gmail.com';
+
+            var acs = ActionCodeSettings(
+                url: '${window.location.href}?email=$email',
+                handleCodeInApp: true);
+
+            FirebaseAuth.instance
+                .sendSignInLinkToEmail(email: email, actionCodeSettings: acs)
+                .catchError((onError) {
+              setState(() {
+                _error = onError;
+              });
+            }).then((value) {
+              setState(() {
+                _email = email;
+              });
+            });
+          },
+          child: const Text('Verify'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailVerifiedColumn(email) {
+    return Column(
+      children: [
+        Text(
+          "Welcome $email \n your email was verified",
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: 300,
+          child: TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Fullname',
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Text(
+            'Your Signature',
+            style: TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+        Signature(
+          controller: _signatureController,
+          width: 200,
+          height: 150,
+          backgroundColor: const Color.fromARGB(255, 148, 221, 219),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'I agree',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            Transform.scale(
+              scale: 1.5,
+              child: Checkbox(
+                key: const Key('agree'),
+                checkColor: Colors.white,
+                fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.disabled)) {
+                    return const Color.fromRGBO(91, 198, 194, 1)
+                        .withOpacity(.32);
+                  }
+                  return const Color.fromRGBO(91, 198, 194, 1);
+                }),
+                value: _isAgreeChecked,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _isAgreeChecked = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+        Transform.scale(
+          scale: 1.2,
+          child: ElevatedButton(
+            onPressed: () async {
+              final capturedImageBytes = await _screenshotController.capture(
+                  delay: const Duration(milliseconds: 10));
+
+              await FileSaver.instance.saveFile(
+                  name: 'waiver',
+                  bytes: capturedImageBytes,
+                  mimeType: MimeType.png);
+            },
+            child: const Text('Submit'),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -112,45 +268,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 22),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                          ),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          var acs = ActionCodeSettings(
-                              // URL you want to redirect back to. The domain (www.example.com) for this
-                              // URL must be whitelisted in the Firebase Console.
-                              url: 'http://localhost:58128',
-                              // This must be true
-                              handleCodeInApp: true);
-
-                          // var user =
-                          //     await FirebaseAuth.instance.signInAnonymously();
-                          // print(user);
-
-                          var emailAuth = 'info.dotnetworks@gmail.com';
-                          FirebaseAuth.instance
-                              .sendSignInLinkToEmail(
-                                  email: emailAuth, actionCodeSettings: acs)
-                              .catchError((onError) => print(
-                                  'Error sending email verification $onError'))
-                              .then((value) => print(
-                                  'Successfully sent email verification'));
-                        },
-                        child: const Text('Verify'),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 20),
                   RichText(
@@ -293,86 +410,31 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'I agree',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ),
-                      Transform.scale(
-                        scale: 1.5,
-                        child: Checkbox(
-                          key: const Key('agree'),
-                          checkColor: Colors.white,
-                          fillColor: MaterialStateProperty.resolveWith<Color>(
-                              (Set<MaterialState> states) {
-                            if (states.contains(MaterialState.disabled)) {
-                              return const Color.fromRGBO(91, 198, 194, 1)
-                                  .withOpacity(.32);
-                            }
-                            return const Color.fromRGBO(91, 198, 194, 1);
-                          }),
-                          value: _isAgreeChecked,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _isAgreeChecked = value;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'Fullname',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'Your Signature',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16),
-                        ),
-                      ),
-                      Signature(
-                        controller: _controller,
-                        width: 200,
-                        height: 150,
-                        backgroundColor:
-                            const Color.fromARGB(255, 148, 221, 219),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  Transform.scale(
-                    scale: 1.2,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final capturedImageBytes = await _screenshotController
-                            .capture(delay: const Duration(milliseconds: 10));
-
-                        await FileSaver.instance.saveFile(
-                            name: 'waiver',
-                            bytes: capturedImageBytes,
-                            mimeType: MimeType.png);
-                      },
-                      child: const Text('Submit'),
+                  if (_error != null)
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.red),
                     ),
-                  ),
+                  if (_email != null)
+                    Text(
+                      'We sent a verification email to $_email\n Click on the link in the email to continue ..',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.green),
+                    ),
+                  if (_email == null)
+                    FutureBuilder(
+                      future: _trySignInWithEmailLink(),
+                      builder: (context, snapshot) {
+                        final email = snapshot.data;
+
+                        if (email == '') {
+                          return _buildVerifyEmailRow();
+                        }
+
+                        return _buildEmailVerifiedColumn(email);
+                      },
+                    ),
                 ],
               ),
             ),
