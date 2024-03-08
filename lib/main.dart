@@ -66,6 +66,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool? _isAgreeChecked = false;
   String? _error;
 
+  final _fullNameController = TextEditingController();
+
   // When a verification email was sent, this keeps track of the email address
   String? _email;
 
@@ -80,13 +82,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _signatureController.dispose();
+    _fullNameController.dispose();
     super.dispose();
   }
 
   Future<String?> _trySignInWithEmailLink() async {
     if (FirebaseAuth.instance.currentUser != null) {
+      print(
+          'Firebase user already signed in: ${FirebaseAuth.instance.currentUser?.email}');
       return FirebaseAuth.instance.currentUser?.email;
     }
+
+    await FirebaseAuth.instance.signOut();
 
     final emailLink = window.location.href;
 
@@ -99,6 +106,8 @@ class _MyHomePageState extends State<MyHomePage> {
             .signInWithEmailLink(email: email, emailLink: emailLink);
 
         final userEmail = userCredential.user?.email;
+        print('Firebase user email: $userEmail');
+
         return userEmail;
       } catch (error) {
         setState(() {
@@ -117,7 +126,8 @@ class _MyHomePageState extends State<MyHomePage> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: TextFormField(
+          child: TextField(
+            controller: _fullNameController,
             decoration: const InputDecoration(
               labelText: 'Email',
             ),
@@ -125,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         ElevatedButton(
           onPressed: () async {
-            const email = 'info.dotnetworks@gmail.com';
+            final email = _fullNameController.text;
 
             var acs = ActionCodeSettings(
                 url: '${window.location.href}?email=$email',
@@ -153,41 +163,18 @@ class _MyHomePageState extends State<MyHomePage> {
     return Column(
       children: [
         Text(
-          "Welcome $email \n your email was verified",
+          "Welcome ${email ?? 'guest'} \n Your email was verified",
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: 300,
-          child: TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Fullname',
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'Your Signature',
-            style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-        Signature(
-          controller: _signatureController,
-          width: 200,
-          height: 150,
-          backgroundColor: const Color.fromARGB(255, 148, 221, 219),
-        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Padding(
               padding: EdgeInsets.all(8.0),
               child: Text(
-                'I agree',
+                'I agree to the Terms of Engagement',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
@@ -214,6 +201,30 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: 300,
+          child: TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Fullname',
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Text(
+            'Your Signature',
+            style: TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+        Signature(
+          controller: _signatureController,
+          width: 200,
+          height: 150,
+          backgroundColor: const Color.fromARGB(255, 148, 221, 219),
+        ),
         const SizedBox(height: 40),
         Transform.scale(
           scale: 1.2,
@@ -232,6 +243,156 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ],
     );
+  }
+
+  List<Widget> _buildTextWidgets() {
+    return <Widget>[
+      const Text(
+        'Terms of Engagement',
+        style: TextStyle(
+            color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
+      ),
+      const SizedBox(height: 20),
+      RichText(
+        text: const TextSpan(
+          // Note: Styles for TextSpans must be explicitly defined.
+          // Child text spans will inherit styles from parent
+          style: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text:
+                  'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized, or sponsored by Because – Sports to Support (referred to as "',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  '") may involve high-intensity physical movements and carry inherent risks, including accidents and injury. I understand that the activities held by ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions.',
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      RichText(
+        text: const TextSpan(
+          // Note: Styles for TextSpans must be explicitly defined.
+          // Child text spans will inherit styles from parent
+          style: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text:
+                  'I represent and warrant that I am in good health and physically and mentally capable of participating in the ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ' activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      RichText(
+        text: const TextSpan(
+          // Note: Styles for TextSpans must be explicitly defined.
+          // Child text spans will inherit styles from parent
+          style: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text:
+                  'During my involvement in the activities, I assume any risk involved and release ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      RichText(
+        text: const TextSpan(
+          // Note: Styles for TextSpans must be explicitly defined.
+          // Child text spans will inherit styles from parent
+          style: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text:
+                  'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ' and warrant that I have no medical condition that would hinder my full participation.',
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      RichText(
+        text: const TextSpan(
+          // Note: Styles for TextSpans must be explicitly defined.
+          // Child text spans will inherit styles from parent
+          style: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text: 'By participation in ',
+            ),
+            TextSpan(
+              text: 'Because',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text:
+                  ' activities, you agree to the collection, use, and sharing of your personal data for activities-related communication and organization. This includes your contact information and any health details necessary for your participation. You can withdraw consent by emailing cathiecocqueel@because-sport.com. We\'ll retain your data as required for activities administration. We may also use photos and videos taken during the activities for promotional and marketing purposes; let us know if you prefer not to be included.',
+            ),
+          ],
+        ),
+      )
+    ];
   }
 
   @override
@@ -261,154 +422,8 @@ class _MyHomePageState extends State<MyHomePage> {
               color: Colors.white,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  const Text(
-                    'Terms of Engagement',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22),
-                  ),
-                  const SizedBox(height: 20),
-                  RichText(
-                    text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text:
-                              'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized, or sponsored by Because – Sports to Support (referred to as "',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              '") may involve high-intensity physical movements and carry inherent risks, including accidents and injury. I understand that the activities held by ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions.',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  RichText(
-                    text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text:
-                              'I represent and warrant that I am in good health and physically and mentally capable of participating in the ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ' activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  RichText(
-                    text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text:
-                              'During my involvement in the activities, I assume any risk involved and release ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  RichText(
-                    text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text:
-                              'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ' and warrant that I have no medical condition that would hinder my full participation.',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  RichText(
-                    text: const TextSpan(
-                      // Note: Styles for TextSpans must be explicitly defined.
-                      // Child text spans will inherit styles from parent
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: 'By participation in ',
-                        ),
-                        TextSpan(
-                          text: 'Because',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text:
-                              ' activities, you agree to the collection, use, and sharing of your personal data for activities-related communication and organization. This includes your contact information and any health details necessary for your participation. You can withdraw consent by emailing cathiecocqueel@because-sport.com. We\'ll retain your data as required for activities administration. We may also use photos and videos taken during the activities for promotional and marketing purposes; let us know if you prefer not to be included.',
-                        ),
-                      ],
-                    ),
-                  ),
+                children: [
+                  ..._buildTextWidgets(),
                   const SizedBox(height: 20),
                   if (_error != null)
                     Text(
