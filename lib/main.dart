@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'package:screenshot/screenshot.dart';
+import 'package:email_validator/email_validator.dart';
 
 void main() async {
   await Firebase.initializeApp(
@@ -73,6 +74,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // When a verification email was sent, this keeps track of the email address
   String? _email;
+  bool _isEmailValid = true;
+
+  String? _submitValidationErrors;
 
   final ScreenshotController _screenshotController = ScreenshotController();
 
@@ -152,8 +156,6 @@ class _MyHomePageState extends State<MyHomePage> {
       return FirebaseAuth.instance.currentUser?.email;
     }
 
-    await FirebaseAuth.instance.signOut();
-
     final emailLink = window.location.href;
 
     if (FirebaseAuth.instance.isSignInWithEmailLink(emailLink)) {
@@ -180,39 +182,64 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildVerifyEmailRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
       children: [
-        Expanded(
-          child: TextField(
-            controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-            ),
+        if (!_isEmailValid)
+          const Column(
+            children: [
+              Text(
+                'Please provide a valid email address',
+                style: TextStyle(color: Colors.red, fontSize: 16),
+              )
+            ],
           ),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            final email = _emailController.text;
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = _emailController.text;
 
-            var acs = ActionCodeSettings(
-                url: '${window.location.href}?email=$email',
-                handleCodeInApp: true);
+                final isEmailValid = EmailValidator.validate(email);
 
-            FirebaseAuth.instance
-                .sendSignInLinkToEmail(email: email, actionCodeSettings: acs)
-                .catchError((onError) {
-              setState(() {
-                _error = onError;
-              });
-            }).then((value) {
-              setState(() {
-                _email = email;
-              });
-            });
-          },
-          child: const Text('Verify'),
+                if (!isEmailValid) {
+                  setState(() {
+                    _isEmailValid = false;
+                  });
+
+                  return;
+                }
+
+                var acs = ActionCodeSettings(
+                    url: '${window.location.href}?email=$email',
+                    handleCodeInApp: true);
+
+                FirebaseAuth.instance
+                    .sendSignInLinkToEmail(
+                        email: email, actionCodeSettings: acs)
+                    .catchError((onError) {
+                  setState(() {
+                    _error = onError;
+                  });
+                }).then((value) {
+                  setState(() {
+                    _email = email;
+                    _isEmailValid = true;
+                  });
+                });
+              },
+              child: const Text('Verify'),
+            ),
+          ],
         ),
       ],
     );
@@ -225,6 +252,14 @@ class _MyHomePageState extends State<MyHomePage> {
           "Welcome ${email ?? 'guest'} \n Your email was verified",
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () async {
+            await FirebaseAuth.instance.signOut();
+            window.location.replace(window.location.href.split('?')[0]);
+          },
+          child: const Text('Use a different email address'),
         ),
         const SizedBox(height: 20),
         Row(
@@ -317,10 +352,42 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         const SizedBox(height: 40),
+        if (_submitValidationErrors != null)
+          Column(
+            children: [
+              Text(
+                _submitValidationErrors!,
+                style: const TextStyle(fontSize: 16, color: Colors.red),
+              ),
+              const SizedBox(height: 20)
+            ],
+          ),
         Transform.scale(
           scale: 1.2,
           child: ElevatedButton(
             onPressed: () async {
+              String? validationMessage;
+
+              if (_isAgreeChecked != true) {
+                validationMessage = "Please agree to the Terms of Engagement";
+              }
+
+              if (validationMessage == null && _fullNameController.text == '') {
+                validationMessage = "Please provide your full name";
+              }
+
+              if (validationMessage == null && _signatureController.isEmpty) {
+                validationMessage = "Please put your signature";
+              }
+
+              if (validationMessage != null) {
+                setState(() {
+                  _submitValidationErrors = validationMessage;
+                });
+
+                return;
+              }
+
               final signatureImgBytes = await _signatureController.toPngBytes(
                 width: 200,
                 height: 150,
