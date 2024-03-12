@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'dart:html';
@@ -66,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool? _isAgreeChecked = false;
   String? _error;
 
+  final _emailController = TextEditingController();
   final _fullNameController = TextEditingController();
 
   // When a verification email was sent, this keeps track of the email address
@@ -82,8 +85,64 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _signatureController.dispose();
+    _emailController.dispose();
     _fullNameController.dispose();
     super.dispose();
+  }
+
+  Widget _createScreenShotWidget(Uint8List signatureImgBytes, String fullName) {
+    return Container(
+      width: 800,
+      color: Colors.white,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  color: const Color.fromRGBO(91, 198, 194, 1),
+                  child: const Image(
+                    image: AssetImage('assets/because_logo.webp'),
+                    height: 100,
+                    width: 200,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [..._buildTextWidgets()],
+            ),
+          ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'I agree to the Terms of Engagement',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 0),
+                child: Icon(
+                  Icons.check,
+                  color: Colors.black,
+                  size: 26,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            fullName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
+          ),
+          Image.memory(signatureImgBytes)
+        ],
+      ),
+    );
   }
 
   Future<String?> _trySignInWithEmailLink() async {
@@ -127,7 +186,7 @@ class _MyHomePageState extends State<MyHomePage> {
       children: [
         Expanded(
           child: TextField(
-            controller: _fullNameController,
+            controller: _emailController,
             decoration: const InputDecoration(
               labelText: 'Email',
             ),
@@ -135,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         ElevatedButton(
           onPressed: () async {
-            final email = _fullNameController.text;
+            final email = _emailController.text;
 
             var acs = ActionCodeSettings(
                 url: '${window.location.href}?email=$email',
@@ -205,6 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(
           width: 300,
           child: TextFormField(
+            controller: _fullNameController,
             decoration: const InputDecoration(
               labelText: 'Fullname',
             ),
@@ -225,17 +285,54 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 150,
           backgroundColor: const Color.fromARGB(255, 148, 221, 219),
         ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.undo),
+              color: const Color.fromARGB(255, 148, 221, 219),
+              onPressed: () {
+                setState(() => _signatureController.undo());
+              },
+              tooltip: 'Undo',
+            ),
+            IconButton(
+              icon: const Icon(Icons.redo),
+              color: const Color.fromARGB(255, 148, 221, 219),
+              onPressed: () {
+                setState(() => _signatureController.redo());
+              },
+              tooltip: 'Redo',
+            ),
+            //CLEAR CANVAS
+            IconButton(
+              key: const Key('clear'),
+              icon: const Icon(Icons.clear),
+              color: const Color.fromARGB(255, 148, 221, 219),
+              onPressed: () {
+                setState(() => _signatureController.clear());
+              },
+              tooltip: 'Clear',
+            )
+          ],
+        ),
         const SizedBox(height: 40),
         Transform.scale(
           scale: 1.2,
           child: ElevatedButton(
             onPressed: () async {
-              final capturedImageBytes = await _screenshotController.capture(
-                  delay: const Duration(milliseconds: 10));
+              final signatureImgBytes = await _signatureController.toPngBytes(
+                width: 200,
+                height: 150,
+              );
+
+              final capturedScreenshotImageBytes = await _screenshotController
+                  .captureFromWidget(_createScreenShotWidget(
+                      signatureImgBytes!, _fullNameController.text));
 
               await FileSaver.instance.saveFile(
                   name: 'waiver',
-                  bytes: capturedImageBytes,
+                  bytes: capturedScreenshotImageBytes,
                   mimeType: MimeType.png);
             },
             child: const Text('Submit'),
