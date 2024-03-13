@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'firebase_options.dart';
 import 'dart:html';
 
@@ -92,6 +95,74 @@ class _MyHomePageState extends State<MyHomePage> {
     _emailController.dispose();
     _fullNameController.dispose();
     super.dispose();
+  }
+
+  Future<String> _saveWaiverToStorage(String email, Uint8List imgBytes) {
+    final storageRef = FirebaseStorage.instance.ref();
+    final waiverRef = storageRef.child("waivers/$email.png");
+    final uploadTask = waiverRef.putData(
+        imgBytes,
+        SettableMetadata(
+          contentType: "image/png",
+        ));
+
+    final completer = Completer<String>();
+
+    // Listen for state changes, errors, and completion of the upload.
+    uploadTask.snapshotEvents.listen((TaskSnapshot taskSnapshot) async {
+      switch (taskSnapshot.state) {
+        case TaskState.running:
+          final progress =
+              100.0 * (taskSnapshot.bytesTransferred / taskSnapshot.totalBytes);
+          print("Upload is $progress% complete.");
+          break;
+        case TaskState.paused:
+          print("Upload is paused.");
+          break;
+        case TaskState.canceled:
+          print("Upload was canceled");
+          break;
+        case TaskState.error:
+          // Handle unsuccessful uploads
+          completer.completeError("Upload failed");
+          break;
+        case TaskState.success:
+          // Handle successful uploads on complete
+          final downloadUrl = await taskSnapshot.ref.getDownloadURL();
+          print("DownloadURL: $downloadUrl");
+          completer.complete(downloadUrl);
+          break;
+      }
+    });
+
+    return completer.future;
+  }
+
+  Future<void> _saveWaiverToFirebaseStorage(
+      String email, String waiverDownloadUrl) async {
+    final db = FirebaseFirestore.instance;
+    final waiver = <String, dynamic>{
+      "email": email,
+      "downloadUrl": waiverDownloadUrl
+    };
+
+    // Add a new document with a generated ID
+    final doc = await db.collection("waivers").add(waiver);
+    print('DocumentSnapshot added with ID: ${doc.id}');
+
+    // await FileSaver.instance.saveFile(
+    //     name: 'waiver',
+    //     bytes: capturedScreenshotImageBytes,
+    //     mimeType: MimeType.png);
+  }
+
+  Future<void> _saveWaiver(Uint8List imgBytes) async {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+    final email = currentUser.email!;
+
+    final downloadUrl = await _saveWaiverToStorage(email, imgBytes);
+
+    await _saveWaiverToFirebaseStorage(email, downloadUrl);
   }
 
   Widget _createScreenShotWidget(Uint8List signatureImgBytes, String fullName) {
@@ -397,10 +468,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   .captureFromWidget(_createScreenShotWidget(
                       signatureImgBytes!, _fullNameController.text));
 
-              await FileSaver.instance.saveFile(
-                  name: 'waiver',
-                  bytes: capturedScreenshotImageBytes,
-                  mimeType: MimeType.png);
+              await _saveWaiver(capturedScreenshotImageBytes);
             },
             child: const Text('Submit'),
           ),
