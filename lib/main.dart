@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:because_terms/widget_builder.dart' as wb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/services.dart';
 import 'firebase_options.dart';
 import 'dart:html';
+import 'package:pdf/widgets.dart' as pw;
 
 import 'package:file_saver/file_saver.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -40,9 +43,10 @@ class MyApp extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image(
-                image: AssetImage('assets/because_logo.webp'),
-                height: 200,
-                width: 200),
+              image: AssetImage('assets/because_logo.webp'),
+              height: 200,
+              width: 200,
+            ),
           ],
         ),
       ),
@@ -97,13 +101,57 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  wb.Document _generateDocument() {
+    return wb.Document('Terms of Engagement and Liability Waiver', 8, [
+      wb.Paragraph([
+        wb.Txt(
+            'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized or sponsored by Because - Sports to Support (referred to as "',
+            'normal'),
+        wb.Txt('Because', 'bold'),
+        wb.Txt(
+            '") may involve high-intensity physical movements and carry inherent risks, including, but not limited to, accidents, injuries, and death. I understand that the activities held by ',
+            'normal'),
+        wb.Txt('Because', 'bold'),
+        wb.Txt(
+            ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions. I represent and warrant that I am in good health and physically and mentally capable of participating in the Because activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
+            'normal')
+      ]),
+      wb.Paragraph([
+        wb.Txt(
+            'During my involvement in the activities, I assume any risk involved and release ',
+            'normal'),
+        wb.Txt('Because', 'bold'),
+        wb.Txt(
+            ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
+            'normal'),
+        wb.Txt('Because', 'bold'),
+        wb.Txt(
+            ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
+            'normal')
+      ]),
+      wb.Paragraph([
+        wb.Txt(
+            'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
+            'normal'),
+        wb.Txt('Because', 'bold'),
+        wb.Txt(
+            ' and warrant that I have no medical condition that would hinder my full participation. By participating in Because activities, I consent to the use of photographs and videos captured during these events for promotional and marketing purposes, this includes the right to use these materials without compensation.',
+            'normal'),
+      ]),
+    ], [
+      wb.TxtStyle('title', color: Colors.black, fontSize: 18, isBold: true),
+      wb.TxtStyle('normal', color: Colors.black, fontSize: 14),
+      wb.TxtStyle('bold', color: Colors.black, fontSize: 14, isBold: true),
+    ]);
+  }
+
   Future<String> _saveWaiverToStorage(String email, Uint8List imgBytes) {
     final storageRef = FirebaseStorage.instance.ref();
-    final waiverRef = storageRef.child("waivers/$email.png");
+    final waiverRef = storageRef.child("waivers/$email.pdf");
     final uploadTask = waiverRef.putData(
         imgBytes,
         SettableMetadata(
-          contentType: "image/png",
+          contentType: "application/pdf",
         ));
 
     final completer = Completer<String>();
@@ -149,75 +197,32 @@ class _MyHomePageState extends State<MyHomePage> {
     // Add a new document with a generated ID
     final doc = await db.collection("waivers").add(waiver);
     print('DocumentSnapshot added with ID: ${doc.id}');
-
-    // await FileSaver.instance.saveFile(
-    //     name: 'waiver',
-    //     bytes: capturedScreenshotImageBytes,
-    //     mimeType: MimeType.png);
   }
 
-  Future<void> _saveWaiver(Uint8List imgBytes) async {
+  Future<pw.Document> _createPdfWaiver(Uint8List signatureImgBytes) async {
+    final doc = _generateDocument();
+
+    doc.children.add(wb.Spacer(10));
+    doc.children.add(wb.CheckBox('I agree to the Terms of Engagement', 'bold'));
+    doc.children.add(wb.Spacer(10));
+    doc.children.add(wb.Txt(_fullNameController.text, 'bold'));
+    doc.children.add(wb.Img(signatureImgBytes));
+
+    var pdf = wb.PdfBuilder(doc);
+
+    return pdf.build();
+  }
+
+  Future<void> _saveWaiver(Uint8List fileBytes) async {
     final currentUser = FirebaseAuth.instance.currentUser!;
     final email = currentUser.email!;
 
-    final downloadUrl = await _saveWaiverToStorage(email, imgBytes);
+    final downloadUrl = await _saveWaiverToStorage(email, fileBytes);
 
     await _saveWaiverToFirebaseStorage(email, downloadUrl);
-  }
 
-  Widget _createScreenShotWidget(Uint8List signatureImgBytes, String fullName) {
-    return Container(
-      width: 800,
-      color: Colors.white,
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  color: const Color.fromRGBO(91, 198, 194, 1),
-                  child: const Image(
-                    image: AssetImage('assets/because_logo.webp'),
-                    height: 100,
-                    width: 200,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [..._buildTextWidgets()],
-            ),
-          ),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'I agree to the Terms of Engagement',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 0),
-                child: Icon(
-                  Icons.check,
-                  color: Colors.black,
-                  size: 26,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            fullName,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
-          ),
-          Image.memory(signatureImgBytes)
-        ],
-      ),
-    );
+    await FileSaver.instance
+        .saveFile(name: 'waiver', bytes: fileBytes, mimeType: MimeType.pdf);
   }
 
   Future<String?> _trySignInWithEmailLink() async {
@@ -464,11 +469,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: 150,
               );
 
-              final capturedScreenshotImageBytes = await _screenshotController
-                  .captureFromWidget(_createScreenShotWidget(
-                      signatureImgBytes!, _fullNameController.text));
+              final pdf = await _createPdfWaiver(signatureImgBytes!);
+              final pdfBytes = await pdf.save();
 
-              await _saveWaiver(capturedScreenshotImageBytes);
+              await _saveWaiver(pdfBytes);
             },
             child: const Text('Submit'),
           ),
