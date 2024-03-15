@@ -1,21 +1,24 @@
 import 'dart:async';
-import 'dart:typed_data';
-
-import 'package:because_terms/widget_builder.dart' as wb;
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/services.dart';
-import 'firebase_options.dart';
 import 'dart:html';
-import 'package:pdf/widgets.dart' as pw;
 
-import 'package:file_saver/file_saver.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:signature/signature.dart';
-import 'package:screenshot/screenshot.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import './firebase_options.dart';
+import './pdf_builder.dart' as pb;
+import './wiget_builder.dart' as wb;
+import './common_widgets.dart' as cw;
+
 import 'package:email_validator/email_validator.dart';
+import 'package:signature/signature.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 void main() async {
   await Firebase.initializeApp(
@@ -73,6 +76,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const becauseColor = Color.fromARGB(255, 148, 221, 219);
+  static const becauseColorDarker = Color.fromARGB(255, 32, 196, 191);
+
+  bool _waiverSubmitting = false;
+  String _waiverSubmitMessage = '';
+  String _waiverDownloadUrl = '';
+  bool _waiverSubmitted = false;
+
   bool? _isAgreeChecked = false;
   String? _error;
 
@@ -84,8 +95,6 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isEmailValid = true;
 
   String? _submitValidationErrors;
-
-  final ScreenshotController _screenshotController = ScreenshotController();
 
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 5,
@@ -101,47 +110,49 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  wb.Document _generateDocument() {
-    return wb.Document('Terms of Engagement and Liability Waiver', 8, [
-      wb.Paragraph([
-        wb.Txt(
+  cw.Document _generateDocument(int titleFontSize, int textFontSize) {
+    return cw.Document('Terms of Engagement and Liability Waiver', 20, 8, [
+      cw.Paragraph([
+        cw.Txt(
             'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized or sponsored by Because - Sports to Support (referred to as "',
             'normal'),
-        wb.Txt('Because', 'bold'),
-        wb.Txt(
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
             '") may involve high-intensity physical movements and carry inherent risks, including, but not limited to, accidents, injuries, and death. I understand that the activities held by ',
             'normal'),
-        wb.Txt('Because', 'bold'),
-        wb.Txt(
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
             ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions. I represent and warrant that I am in good health and physically and mentally capable of participating in the Because activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
             'normal')
       ]),
-      wb.Paragraph([
-        wb.Txt(
+      cw.Paragraph([
+        cw.Txt(
             'During my involvement in the activities, I assume any risk involved and release ',
             'normal'),
-        wb.Txt('Because', 'bold'),
-        wb.Txt(
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
             ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
             'normal'),
-        wb.Txt('Because', 'bold'),
-        wb.Txt(
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
             ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
             'normal')
       ]),
-      wb.Paragraph([
-        wb.Txt(
+      cw.Paragraph([
+        cw.Txt(
             'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
             'normal'),
-        wb.Txt('Because', 'bold'),
-        wb.Txt(
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
             ' and warrant that I have no medical condition that would hinder my full participation. By participating in Because activities, I consent to the use of photographs and videos captured during these events for promotional and marketing purposes, this includes the right to use these materials without compensation.',
             'normal'),
       ]),
     ], [
-      wb.TxtStyle('title', color: Colors.black, fontSize: 18, isBold: true),
-      wb.TxtStyle('normal', color: Colors.black, fontSize: 14),
-      wb.TxtStyle('bold', color: Colors.black, fontSize: 14, isBold: true),
+      cw.TxtStyle('title',
+          color: Colors.black, fontSize: titleFontSize, isBold: true),
+      cw.TxtStyle('normal', color: Colors.black, fontSize: textFontSize),
+      cw.TxtStyle('bold',
+          color: Colors.black, fontSize: textFontSize, isBold: true),
     ]);
   }
 
@@ -162,13 +173,13 @@ class _MyHomePageState extends State<MyHomePage> {
         case TaskState.running:
           final progress =
               100.0 * (taskSnapshot.bytesTransferred / taskSnapshot.totalBytes);
-          print("Upload is $progress% complete.");
+          setState(() {
+            _waiverSubmitMessage = 'Uploading waiver ($progress)';
+          });
           break;
         case TaskState.paused:
-          print("Upload is paused.");
           break;
         case TaskState.canceled:
-          print("Upload was canceled");
           break;
         case TaskState.error:
           // Handle unsuccessful uploads
@@ -177,7 +188,6 @@ class _MyHomePageState extends State<MyHomePage> {
         case TaskState.success:
           // Handle successful uploads on complete
           final downloadUrl = await taskSnapshot.ref.getDownloadURL();
-          print("DownloadURL: $downloadUrl");
           completer.complete(downloadUrl);
           break;
       }
@@ -194,41 +204,65 @@ class _MyHomePageState extends State<MyHomePage> {
       "downloadUrl": waiverDownloadUrl
     };
 
-    // Add a new document with a generated ID
-    final doc = await db.collection("waivers").add(waiver);
-    print('DocumentSnapshot added with ID: ${doc.id}');
+    await db.collection("waivers").add(waiver);
   }
 
   Future<pw.Document> _createPdfWaiver(Uint8List signatureImgBytes) async {
-    final doc = _generateDocument();
+    final doc = _generateDocument(18, 14);
 
-    doc.children.add(wb.Spacer(10));
-    doc.children.add(wb.CheckBox('I agree to the Terms of Engagement', 'bold'));
-    doc.children.add(wb.Spacer(10));
-    doc.children.add(wb.Txt(_fullNameController.text, 'bold'));
-    doc.children.add(wb.Img(signatureImgBytes));
+    doc.children.add(cw.Spacer(10));
+    doc.children.add(cw.CheckBox('I agree to the Terms of Engagement', 'bold'));
+    doc.children.add(cw.Spacer(10));
+    doc.children.add(cw.Txt(_fullNameController.text, 'bold'));
+    doc.children.add(cw.Img(signatureImgBytes));
 
-    var pdf = wb.PdfBuilder(doc);
+    var pdf = pb.PdfBuilder(doc);
 
     return pdf.build();
   }
 
-  Future<void> _saveWaiver(Uint8List fileBytes) async {
+  Future<void> _saveWaiver() async {
     final currentUser = FirebaseAuth.instance.currentUser!;
     final email = currentUser.email!;
 
-    final downloadUrl = await _saveWaiverToStorage(email, fileBytes);
+    try {
+      setState(() {
+        _waiverSubmitting = true;
+        _waiverSubmitMessage = 'Submitting waiver ..';
+      });
 
-    await _saveWaiverToFirebaseStorage(email, downloadUrl);
+      final signatureImgBytes = await _signatureController.toPngBytes(
+        width: 200,
+        height: 150,
+      );
 
-    await FileSaver.instance
-        .saveFile(name: 'waiver', bytes: fileBytes, mimeType: MimeType.pdf);
+      final pdf = await _createPdfWaiver(signatureImgBytes!);
+      final pdfBytes = await pdf.save();
+
+      final downloadUrl = await _saveWaiverToStorage(email, pdfBytes);
+
+      setState(() {
+        _waiverDownloadUrl = downloadUrl;
+      });
+
+      await _saveWaiverToFirebaseStorage(email, downloadUrl);
+
+      setState(() {
+        _waiverSubmitted = true;
+      });
+
+      await FirebaseAuth.instance.signOut();
+    } catch (err) {
+      setState(() {
+        _error = "Failed to submit waiver ..";
+      });
+    } finally {
+      _waiverSubmitting = false;
+    }
   }
 
   Future<String?> _trySignInWithEmailLink() async {
     if (FirebaseAuth.instance.currentUser != null) {
-      print(
-          'Firebase user already signed in: ${FirebaseAuth.instance.currentUser?.email}');
       return FirebaseAuth.instance.currentUser?.email;
     }
 
@@ -243,7 +277,7 @@ class _MyHomePageState extends State<MyHomePage> {
             .signInWithEmailLink(email: email, emailLink: emailLink);
 
         final userEmail = userCredential.user?.email;
-        print('Firebase user email: $userEmail');
+        // print('Firebase user email: $userEmail');
 
         return userEmail;
       } catch (error) {
@@ -394,14 +428,14 @@ class _MyHomePageState extends State<MyHomePage> {
           controller: _signatureController,
           width: 200,
           height: 150,
-          backgroundColor: const Color.fromARGB(255, 148, 221, 219),
+          backgroundColor: becauseColor,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
               icon: const Icon(Icons.undo),
-              color: const Color.fromARGB(255, 148, 221, 219),
+              color: becauseColor,
               onPressed: () {
                 setState(() => _signatureController.undo());
               },
@@ -409,7 +443,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             IconButton(
               icon: const Icon(Icons.redo),
-              color: const Color.fromARGB(255, 148, 221, 219),
+              color: becauseColor,
               onPressed: () {
                 setState(() => _signatureController.redo());
               },
@@ -419,7 +453,7 @@ class _MyHomePageState extends State<MyHomePage> {
             IconButton(
               key: const Key('clear'),
               icon: const Icon(Icons.clear),
-              color: const Color.fromARGB(255, 148, 221, 219),
+              color: becauseColor,
               onPressed: () {
                 setState(() => _signatureController.clear());
               },
@@ -441,39 +475,36 @@ class _MyHomePageState extends State<MyHomePage> {
         Transform.scale(
           scale: 1.2,
           child: ElevatedButton(
-            onPressed: () async {
-              String? validationMessage;
+            onPressed: _waiverSubmitting
+                ? null
+                : () async {
+                    String? validationMessage;
 
-              if (_isAgreeChecked != true) {
-                validationMessage = "Please agree to the Terms of Engagement";
-              }
+                    if (_isAgreeChecked != true) {
+                      validationMessage =
+                          "Please agree to the Terms of Engagement";
+                    }
 
-              if (validationMessage == null && _fullNameController.text == '') {
-                validationMessage = "Please provide your full name";
-              }
+                    if (validationMessage == null &&
+                        _fullNameController.text == '') {
+                      validationMessage = "Please provide your full name";
+                    }
 
-              if (validationMessage == null && _signatureController.isEmpty) {
-                validationMessage = "Please put your signature";
-              }
+                    if (validationMessage == null &&
+                        _signatureController.isEmpty) {
+                      validationMessage = "Please put your signature";
+                    }
 
-              if (validationMessage != null) {
-                setState(() {
-                  _submitValidationErrors = validationMessage;
-                });
+                    if (validationMessage != null) {
+                      setState(() {
+                        _submitValidationErrors = validationMessage;
+                      });
 
-                return;
-              }
+                      return;
+                    }
 
-              final signatureImgBytes = await _signatureController.toPngBytes(
-                width: 200,
-                height: 150,
-              );
-
-              final pdf = await _createPdfWaiver(signatureImgBytes!);
-              final pdfBytes = await pdf.save();
-
-              await _saveWaiver(pdfBytes);
-            },
+                    await _saveWaiver();
+                  },
             child: const Text('Submit'),
           ),
         ),
@@ -481,154 +512,81 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _buildConditionalWidget() {
+    if (_waiverSubmitted) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      const textStyle = TextStyle(fontSize: 16, color: becauseColorDarker);
+      const textStyleBold = TextStyle(
+          fontSize: 16, color: becauseColorDarker, fontWeight: FontWeight.bold);
+
+      return Center(
+        child: RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Thank you!\n',
+                style: textStyleBold,
+              ),
+              const TextSpan(
+                text: 'We emailed the completed waiver to ',
+                style: textStyle,
+              ),
+              TextSpan(
+                text: '${currentUser?.email ?? 'unknown'}\n',
+                style: textStyleBold,
+              ),
+              const TextSpan(
+                text: 'You can also ',
+                style: textStyle,
+              ),
+              TextSpan(
+                text: 'view it here',
+                style: textStyleBold,
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () {
+                    launchUrl(Uri.parse(_waiverDownloadUrl));
+                  },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_waiverSubmitting) {
+      return Text(
+        _waiverSubmitMessage,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 16, color: becauseColorDarker),
+      );
+    }
+
+    if (_email != null) {
+      return Text(
+        'We sent a verification email to $_email\nClick on the link in the email to continue ..\n Check your Spam folder if you don\'t see it',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 16, color: becauseColorDarker),
+      );
+    }
+
+    return FutureBuilder(
+      future: _trySignInWithEmailLink(),
+      builder: (context, snapshot) {
+        final email = snapshot.data;
+
+        if (email == '') {
+          return _buildVerifyEmailRow();
+        }
+
+        return _buildEmailVerifiedColumn(email);
+      },
+    );
+  }
+
   List<Widget> _buildTextWidgets() {
-    return <Widget>[
-      const Text(
-        'Terms of Engagement',
-        style: TextStyle(
-            color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
-      ),
-      const SizedBox(height: 20),
-      RichText(
-        text: const TextSpan(
-          // Note: Styles for TextSpans must be explicitly defined.
-          // Child text spans will inherit styles from parent
-          style: TextStyle(
-            fontSize: 16.0,
-            color: Colors.black,
-          ),
-          children: <TextSpan>[
-            TextSpan(
-              text:
-                  'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized, or sponsored by Because – Sports to Support (referred to as "',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  '") may involve high-intensity physical movements and carry inherent risks, including accidents and injury. I understand that the activities held by ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions.',
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 20),
-      RichText(
-        text: const TextSpan(
-          // Note: Styles for TextSpans must be explicitly defined.
-          // Child text spans will inherit styles from parent
-          style: TextStyle(
-            fontSize: 16.0,
-            color: Colors.black,
-          ),
-          children: <TextSpan>[
-            TextSpan(
-              text:
-                  'I represent and warrant that I am in good health and physically and mentally capable of participating in the ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ' activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 20),
-      RichText(
-        text: const TextSpan(
-          // Note: Styles for TextSpans must be explicitly defined.
-          // Child text spans will inherit styles from parent
-          style: TextStyle(
-            fontSize: 16.0,
-            color: Colors.black,
-          ),
-          children: <TextSpan>[
-            TextSpan(
-              text:
-                  'During my involvement in the activities, I assume any risk involved and release ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 20),
-      RichText(
-        text: const TextSpan(
-          // Note: Styles for TextSpans must be explicitly defined.
-          // Child text spans will inherit styles from parent
-          style: TextStyle(
-            fontSize: 16.0,
-            color: Colors.black,
-          ),
-          children: <TextSpan>[
-            TextSpan(
-              text:
-                  'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ' and warrant that I have no medical condition that would hinder my full participation.',
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 20),
-      RichText(
-        text: const TextSpan(
-          // Note: Styles for TextSpans must be explicitly defined.
-          // Child text spans will inherit styles from parent
-          style: TextStyle(
-            fontSize: 16.0,
-            color: Colors.black,
-          ),
-          children: <TextSpan>[
-            TextSpan(
-              text: 'By participation in ',
-            ),
-            TextSpan(
-              text: 'Because',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextSpan(
-              text:
-                  ' activities, you agree to the collection, use, and sharing of your personal data for activities-related communication and organization. This includes your contact information and any health details necessary for your participation. You can withdraw consent by emailing cathiecocqueel@because-sport.com. We\'ll retain your data as required for activities administration. We may also use photos and videos taken during the activities for promotional and marketing purposes; let us know if you prefer not to be included.',
-            ),
-          ],
-        ),
-      )
-    ];
+    // return List.empty();
+    return wb.WidgetBuilder(_generateDocument(22, 16)).build();
   }
 
   @override
@@ -650,44 +608,23 @@ class _MyHomePageState extends State<MyHomePage> {
         title: widget.title,
       ),
       body: SingleChildScrollView(
-        child: Screenshot(
-          controller: _screenshotController,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Container(
-              color: Colors.white,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  ..._buildTextWidgets(),
-                  const SizedBox(height: 20),
-                  if (_error != null)
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, color: Colors.red),
-                    ),
-                  if (_email != null)
-                    Text(
-                      'We sent a verification email to $_email\n Click on the link in the email to continue ..',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, color: Colors.green),
-                    ),
-                  if (_email == null)
-                    FutureBuilder(
-                      future: _trySignInWithEmailLink(),
-                      builder: (context, snapshot) {
-                        final email = snapshot.data;
-
-                        if (email == '') {
-                          return _buildVerifyEmailRow();
-                        }
-
-                        return _buildEmailVerifiedColumn(email);
-                      },
-                    ),
-                ],
-              ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Container(
+            color: Colors.white,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                ..._buildTextWidgets(),
+                const SizedBox(height: 20),
+                if (_error != null)
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, color: Colors.red),
+                  ),
+                _buildConditionalWidget()
+              ],
             ),
           ), // This trailing comma makes auto-formatting nicer for build methods.
         ),
