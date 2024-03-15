@@ -122,7 +122,16 @@ class _MyHomePageState extends State<MyHomePage> {
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions. I represent and warrant that I am in good health and physically and mentally capable of participating in the Because activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
+            ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions.',
+            'normal'),
+      ]),
+      cw.Paragraph([
+        cw.Txt(
+            'I represent and warrant that I am in good health and physically and mentally capable of participating in the ',
+            'normal'),
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
+            ' activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
             'normal')
       ]),
       cw.Paragraph([
@@ -144,9 +153,16 @@ class _MyHomePageState extends State<MyHomePage> {
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' and warrant that I have no medical condition that would hinder my full participation. By participating in Because activities, I consent to the use of photographs and videos captured during these events for promotional and marketing purposes, this includes the right to use these materials without compensation.',
+            ' and warrant that I have no medical condition that would hinder my full participation.',
             'normal'),
       ]),
+      cw.Paragraph([
+        cw.Txt('By participating in ', 'normal'),
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
+            ' activities, I consent to the use of photographs and videos captured during these events for promotional and marketing purposes, this includes the right to use these materials without compensation.',
+            'normal')
+      ])
     ], [
       cw.TxtStyle('title',
           color: Colors.black, fontSize: titleFontSize, isBold: true),
@@ -514,7 +530,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildConditionalWidget() {
     if (_waiverSubmitted) {
-      final currentUser = FirebaseAuth.instance.currentUser;
       const textStyle = TextStyle(fontSize: 16, color: becauseColorDarker);
       const textStyleBold = TextStyle(
           fontSize: 16, color: becauseColorDarker, fontWeight: FontWeight.bold);
@@ -529,19 +544,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: textStyleBold,
               ),
               const TextSpan(
-                text: 'We emailed the completed waiver to ',
+                text: 'You can view your waiver ',
                 style: textStyle,
               ),
               TextSpan(
-                text: '${currentUser?.email ?? 'unknown'}\n',
-                style: textStyleBold,
-              ),
-              const TextSpan(
-                text: 'You can also ',
-                style: textStyle,
-              ),
-              TextSpan(
-                text: 'view it here',
+                text: 'here',
                 style: textStyleBold,
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
