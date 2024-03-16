@@ -217,6 +217,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final db = FirebaseFirestore.instance;
     final waiver = <String, dynamic>{
       "email": email,
+      "fullName": _fullNameController.text,
       "downloadUrl": waiverDownloadUrl
     };
 
