@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 import './firebase_options.dart';
 import './pdf_builder.dart' as pb;
@@ -19,6 +20,8 @@ import './common_widgets.dart' as cw;
 import 'package:email_validator/email_validator.dart';
 import 'package:signature/signature.dart';
 import 'package:pdf/widgets.dart' as pw;
+
+const uid = Uuid();
 
 void main() async {
   await Firebase.initializeApp(
@@ -174,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<String> _saveWaiverToStorage(String email, Uint8List imgBytes) {
     final storageRef = FirebaseStorage.instance.ref();
-    final waiverRef = storageRef.child("waivers/$email.pdf");
+    final waiverRef = storageRef.child("waivers/${uid.v4()}.pdf");
     final uploadTask = waiverRef.putData(
         imgBytes,
         SettableMetadata(
@@ -214,14 +217,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _saveWaiverToFirebaseStorage(
       String email, String waiverDownloadUrl) async {
+    final currentUserUid = FirebaseAuth.instance.currentUser!.uid;
     final db = FirebaseFirestore.instance;
     final waiver = <String, dynamic>{
+      "createdByUid": currentUserUid,
       "email": email,
       "fullName": _fullNameController.text,
       "downloadUrl": waiverDownloadUrl
     };
 
-    await db.collection("waivers").add(waiver);
+    await db.collection("waivers").doc(currentUserUid).set(waiver);
   }
 
   Future<pw.Document> _createPdfWaiver(Uint8List signatureImgBytes) async {

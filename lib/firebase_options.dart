@@ -53,12 +53,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-      apiKey: 'AIzaSyB4GgjMA80B8tAox7sAq5ahL74HCAjNYpM',
-      appId: '1:660155405025:web:55921ea1d71c5effae1da0',
-      messagingSenderId: '660155405025',
-      projectId: 'because-terms',
-      authDomain: 'because-terms.firebaseapp.com',
-      storageBucket: 'because-terms.appspot.com',
-      measurementId: 'G-G8KTMLBL68',
+      apiKey: "AIzaSyAs3yetBqfY_cwbWn3Yamiva45v9a8hHlo",
+      authDomain: "because-48ba9.firebaseapp.com",
+      projectId: "because-48ba9",
+      storageBucket: "because-48ba9.appspot.com",
+      messagingSenderId: "543915143547",
+      appId: "1:543915143547:web:60a4ff741bbeba5ed48dde",
+      measurementId: "G-DBJHH7YP4V",
       databaseURL: '');
 }
