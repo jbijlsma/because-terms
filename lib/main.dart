@@ -88,6 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _waiverSubmitted = false;
 
   bool? _isAgreeChecked = false;
+  bool? _isAgeConfirmed = false;
   String? _error;
 
   final _emailController = TextEditingController();
@@ -163,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
         cw.Txt('By participating in ', 'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' activities, I consent to the use of photographs and videos captured during these events for promotional and marketing purposes, this includes the right to use these materials without compensation.',
+            ' activities, I consent to the collection & use of my personal data for activities-related communication and organization. I can withdraw consent by using the contact option on the because website (https://www.because-sport.com/). I consent to the use of photographs and videos captured during events for promotional- and marketing purposes; this includes the right to use these materials without compensation.',
             'normal')
       ])
     ], [
@@ -234,6 +235,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     doc.children.add(cw.Spacer(10));
     doc.children.add(cw.CheckBox('I agree to the Terms of Engagement', 'bold'));
+    doc.children.add(cw.Spacer(10));
+    doc.children
+        .add(cw.CheckBox('I confirm I am at least 18 years old', 'bold'));
     doc.children.add(cw.Spacer(10));
     doc.children.add(cw.Txt(_fullNameController.text, 'bold'));
     doc.children.add(cw.Img(signatureImgBytes));
@@ -428,6 +432,40 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'I confirm I am at least 18 years old',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            Transform.scale(
+              scale: 1.5,
+              child: Checkbox(
+                key: const Key('confirmAge'),
+                checkColor: Colors.white,
+                fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.disabled)) {
+                    return const Color.fromRGBO(91, 198, 194, 1)
+                        .withOpacity(.32);
+                  }
+                  return const Color.fromRGBO(91, 198, 194, 1);
+                }),
+                value: _isAgeConfirmed,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _isAgeConfirmed = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
         SizedBox(
           width: 300,
           child: TextFormField(
@@ -505,6 +543,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (_isAgreeChecked != true) {
                       validationMessage =
                           "Please agree to the Terms of Engagement";
+                    }
+
+                    if (_isAgeConfirmed != true) {
+                      validationMessage =
+                          "Please confirm you are at least 18 years old";
                     }
 
                     if (validationMessage == null &&
