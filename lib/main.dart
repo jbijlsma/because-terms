@@ -164,7 +164,11 @@ class _MyHomePageState extends State<MyHomePage> {
         cw.Txt('By participating in ', 'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' activities, I consent to the collection & use of my personal data for activities-related communication and organization. I can withdraw consent by using the contact option on the because website (https://www.because-sport.com/). I consent to the use of photographs and videos captured during events for promotional- and marketing purposes; this includes the right to use these materials without compensation.',
+            ' activities, I consent to the collection & use of my personal data for activities-related communication and organization. I can withdraw consent by using the contact option on the ',
+            'normal'),
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
+            ' website (https://www.because-sport.com/). I consent to the use of photographs and videos captured during events for promotional- and marketing purposes; this includes the right to use these materials without compensation.',
             'normal')
       ])
     ], [
@@ -231,7 +235,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<pw.Document> _createPdfWaiver(Uint8List signatureImgBytes) async {
-    final doc = _generateDocument(18, 14);
+    final doc = _generateDocument(16, 13);
 
     doc.children.add(cw.Spacer(10));
     doc.children.add(cw.CheckBox('I agree to the Terms of Engagement', 'bold'));
