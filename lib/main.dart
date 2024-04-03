@@ -157,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' and warrant that I have no medical condition that would hinder my full participation.',
+            ' and warrant that I have no medical condition that would hinder my participation.',
             'normal'),
       ]),
       cw.Paragraph([
