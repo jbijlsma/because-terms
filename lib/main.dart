@@ -118,59 +118,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return cw.Document('Terms of Engagement and Liability Waiver', 20, 8, [
       cw.Paragraph([
         cw.Txt(
-            'I have read and understood the terms of engagement outlined below. I acknowledge that participating in (sports) activities and related events, organized or sponsored by Because - Sports to Support (referred to as "',
+            'I acknowledge that participating in activities organized by Because - Sports to Support (referred to as "',
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            '") may involve high-intensity physical movements and carry inherent risks, including, but not limited to, accidents, injuries, and death. I understand that the activities held by ',
+            ') may involve risks, including accidents and injuries. I confirm that I am in good health and capable of participating. I accept all risks and release ',
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ' are not a substitute for medical attention or treatment and may not be suitable for individuals with certain medical conditions.',
+            ', its coaches, and representatives from liability for any harm and losses I may experience. By signing, I confirm I understand and agree to these terms. I consent to the use of my personal data for communication and to the use of my images for promotional purposes.',
             'normal'),
       ]),
-      cw.Paragraph([
-        cw.Txt(
-            'I represent and warrant that I am in good health and physically and mentally capable of participating in the ',
-            'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ' activities. I take full responsibility for consulting with a physician before engaging in the activities. I willingly and knowingly accept all risks associated with participating in the activities, including any loss, claim, injury, damage, or liability, whether known or unknown, that may arise from my participation.',
-            'normal')
-      ]),
-      cw.Paragraph([
-        cw.Txt(
-            'During my involvement in the activities, I assume any risk involved and release ',
-            'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ', its coaches, its volunteers, and its representatives from any and all liability for any harm or injury I may sustain. I agree to indemnify and hold ',
-            'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ' harmless from any loss, cost, claim, injury, damage, or liability incurred during my participation, including the use of the facilities or equipment.',
-            'normal')
-      ]),
-      cw.Paragraph([
-        cw.Txt(
-            'By signing below, I acknowledge that I have read and understood this assumption of risk, release, and waiver of liability. I voluntarily and freely consent to the terms and conditions stated above. I affirm that I have the freedom to decide whether to participate in the activities held by ',
-            'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ' and warrant that I have no medical condition that would hinder my participation.',
-            'normal'),
-      ]),
-      cw.Paragraph([
-        cw.Txt('By participating in ', 'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ' activities, I consent to the collection & use of my personal data for activities-related communication and organization. I can withdraw consent by using the contact option on the ',
-            'normal'),
-        cw.Txt('Because', 'bold'),
-        cw.Txt(
-            ' website (https://www.because-sport.com/). I consent to the use of photographs and videos captured during events for promotional- and marketing purposes; this includes the right to use these materials without compensation.',
-            'normal')
-      ])
     ], [
       cw.TxtStyle('title',
           color: Colors.black, fontSize: titleFontSize, isBold: true),
