@@ -122,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ') inherently involves risks, including the potential for accidents and injuries. I confirm that I am in good health and fully capable of participating in these activities. By signing this agreement, I voluntarily accept all related risks and agree to release and hold harmless ',
+            '") inherently involves risks, including the potential for accidents and injuries. I confirm that I am in good health and fully capable of participating in these activities. By signing this agreement, I voluntarily accept all related risks and agree to release and hold harmless ',
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
