@@ -118,16 +118,22 @@ class _MyHomePageState extends State<MyHomePage> {
     return cw.Document('Terms of Engagement and Liability Waiver', 20, 8, [
       cw.Paragraph([
         cw.Txt(
-            'I acknowledge that participating in activities organized by Because - Sports to Support (referred to as "',
+            'I acknowledge that participation in activities organized by Because - Sports to Support ("',
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ') may involve risks, including accidents and injuries. I confirm that I am in good health and capable of participating. I accept all risks and release ',
+            ') inherently involves risks, including the potential for accidents and injuries. I confirm that I am in good health and fully capable of participating in these activities. By signing this agreement, I voluntarily accept all related risks and agree to release and hold harmless ',
             'normal'),
         cw.Txt('Because', 'bold'),
         cw.Txt(
-            ', its coaches, and representatives from liability for any harm and losses I may experience. By signing, I confirm I understand and agree to these terms. I consent to the use of my personal data for communication and to the use of my images for promotional purposes.',
+            ', its coaches, and representatives from any liability for harm or loss that may occur. Additionally, I agree to indemnify ',
             'normal'),
+        cw.Txt('Because', 'bold'),
+        cw.Txt(
+            ' against any losses that may arise from my participation. I confirm my understanding and acceptance of these terms through my signature below. I also consent to the use of my personal data for communication purposes and authorize the use of my images in ',
+            'normal'),
+        cw.Txt('Because\'s', 'bold'),
+        cw.Txt(' promotional materials.', 'normal'),
       ]),
     ], [
       cw.TxtStyle('title',
